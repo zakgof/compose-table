@@ -9,16 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.platform.InspectorValueInfo
-import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.ceil
 
 @Composable
 fun Table(
@@ -27,22 +24,19 @@ fun Table(
     lineColor: Color = Color.DarkGray,
     content: TableScope.() -> Unit
 ) {
-    var horizontalLines by remember { mutableStateOf<Map<Int, Map<Int, Int>>>(mapOf()) }
-    var verticalLines by remember { mutableStateOf<Map<Int, Map<Int, Int>>>(mapOf()) }
+    var horizontalLines by remember { mutableStateOf<Map<Float, Map<Float, Float>>>(mapOf()) }
+    var verticalLines by remember { mutableStateOf<Map<Float, Map<Float, Float>>>(mapOf()) }
+
     SubcomposeLayout(modifier = modifier.drawBehind {
+
+        val lineWidthFloatPix: Float = LocalDensity.run { lineWidth.toPx() }
         horizontalLines.forEach { entry ->
             entry.value.forEach {
                 drawLine(
                     color = lineColor,
-                    strokeWidth = lineWidth.toPx(),
-                    start = Offset(
-                        it.key.toFloat() - 0.5f * lineWidth.toPx(),
-                        entry.key.toFloat() - 0.5f * lineWidth.toPx()
-                    ),
-                    end = Offset(
-                        it.value.toFloat() - 0.5f * lineWidth.toPx(),
-                        entry.key.toFloat() - 0.5f * lineWidth.toPx()
-                    )
+                    strokeWidth = lineWidthFloatPix,
+                    start = Offset(it.key, entry.key),
+                    end = Offset(it.value, entry.key)
                 )
             }
         }
@@ -51,19 +45,16 @@ fun Table(
                 drawLine(
                     color = lineColor,
                     strokeWidth = lineWidth.toPx(),
-                    start = Offset(
-                        entry.key.toFloat() - 0.5f * lineWidth.toPx(),
-                        it.key.toFloat() - 0.5f * lineWidth.toPx()
-                    ),
-                    end = Offset(
-                        entry.key.toFloat() - 0.5f * lineWidth.toPx(),
-                        it.value.toFloat() - 0.5f * lineWidth.toPx()
-                    )
+                    start = Offset(entry.key, it.key),
+                    end = Offset(entry.key, it.value)
                 )
             }
         }
 
     }) { constraints ->
+
+        val lineWidthFloatPix: Float = LocalDensity.run { lineWidth.toPx() }
+        val lineWidthPix = ceil(lineWidthFloatPix).toInt()
 
         val rows = mutableListOf<@Composable TableRowScope.() -> Unit>()
         content(object : TableScope {
@@ -117,13 +108,16 @@ fun Table(
             x = 0
         }
 
-        val mins = measureCells(cells, lineWidth.value.toInt()) { it.min }
-        val maxs = measureCells(cells, lineWidth.value.toInt()) { it.max }
+        val mins = measureCells(cells, lineWidthPix) { it.min }
+        val maxs = measureCells(cells, lineWidthPix) { it.max }
 
         val actualTotalWidth = mins.first.sum()
         val desiredTotalWidth = maxs.first.sum()
 
-        val effectiveAvailableWidth = constraints.maxWidth - (mins.first.size + 1) * lineWidth.value.toInt()
+        val columnCount = chessBoard.maxOf { it.first } + 1
+        val rowCount = chessBoard.maxOf { it.second } + 1
+
+        val effectiveAvailableWidth = constraints.maxWidth - (columnCount + 1) * lineWidthPix
 
         val finalWidths =
             if (actualTotalWidth > effectiveAvailableWidth) {
@@ -139,7 +133,7 @@ fun Table(
         val actualTotalHeight = mins.second.sum()
         val desiredTotalHeight = maxs.second.sum()
 
-        val effectiveAvailableHeight = constraints.maxHeight - (mins.second.size + 1) * lineWidth.value.toInt()
+        val effectiveAvailableHeight = constraints.maxHeight - (rowCount + 1) * lineWidthPix
 
         val finalHeights =
             if (actualTotalHeight > effectiveAvailableHeight) {
@@ -157,9 +151,9 @@ fun Table(
             subcompose(rowIndex to 2) { TableRowScopeImpl.row() }.map { measurable ->
                 val cell = cells[i++]
                 val width = (cell.columnStart..cell.columnEnd).sumOf { finalWidths[it] } +
-                        (cell.columnEnd - cell.columnStart) * lineWidth.value.toInt()
+                        (cell.columnEnd - cell.columnStart) * lineWidthPix
                 val height = (cell.rowStart..cell.rowEnd).sumOf { finalHeights[it] } +
-                        (cell.rowEnd - cell.rowStart) * lineWidth.value.toInt()
+                        (cell.rowEnd - cell.rowStart) * lineWidthPix
                 val placeable = measurable.measure(
                     Constraints(
                         minWidth = width,
@@ -172,15 +166,15 @@ fun Table(
             }
         }
 
-        val accumWidths = finalWidths.accumulated(lineWidth.value.toInt()) // TODO: all floatz
-        val accumHeights = finalHeights.accumulated(lineWidth.value.toInt()) // TODO: all floatz
+        val accumWidths = finalWidths.accumulated(lineWidthPix)
+        val accumHeights = finalHeights.accumulated(lineWidthPix)
 
-        horizontalLines = calculateLines(accumWidths, accumHeights, noxline)
-        verticalLines = calculateLines(accumHeights, accumWidths, noyline)
+        horizontalLines = calculateLines(accumWidths, accumHeights, noxline, lineWidthFloatPix)
+        verticalLines = calculateLines(accumHeights, accumWidths, noyline, lineWidthFloatPix)
 
         layout(
-            width = accumWidths.last() + lineWidth.value.toInt(),
-            height = accumHeights.last() + lineWidth.value.toInt()
+            width = accumWidths.last(),
+            height = accumHeights.last()
         ) {
             triples.map {
                 it.first.placeRelative(accumWidths[it.second], accumHeights[it.third])
@@ -192,10 +186,11 @@ fun Table(
 fun calculateLines(
     accumWidths: List<Int>,
     accumHeights: List<Int>,
-    noxline: Set<Pair<Int, Int>>
-): Map<Int, Map<Int, Int>> {
+    noxline: Set<Pair<Int, Int>>,
+    lineWidthFloatPix: Float
+): Map<Float, Map<Float, Float>> {
     return accumHeights.mapIndexed { yy, y ->
-        val m = mutableMapOf<Int, Int>()
+        val m = mutableMapOf<Float, Float>()
         var startIndex = 0
         while (startIndex < accumWidths.size) {
             while (noxline.contains(startIndex to yy) && startIndex < accumWidths.size - 1) {
@@ -205,10 +200,12 @@ fun calculateLines(
             while (!noxline.contains(endIndex to yy) && endIndex < accumWidths.size - 1) {
                 endIndex++
             }
-            m[accumWidths[startIndex]] = accumWidths[endIndex]
+            val so = if (startIndex == 0) -lineWidthFloatPix else -lineWidthFloatPix * 0.5f
+            val eo = if (endIndex == accumWidths.size - 1) 0f else -lineWidthFloatPix * 0.5f
+            m[accumWidths[startIndex].toFloat() + so] = accumWidths[endIndex].toFloat() + eo
             startIndex = endIndex + 1
         }
-        y to m
+        y.toFloat()-lineWidthFloatPix * 0.5f to m
     }.associate { it }
 }
 
@@ -253,101 +250,3 @@ private class Cell(
     val columnStart: Int, val columnEnd: Int,
     val rowStart: Int, val rowEnd: Int
 )
-
-interface TableScope {
-    fun Row(rowContent: @Composable TableRowScope.() -> Unit)
-}
-
-interface TableRowScope {
-    fun Modifier.columnSpan(columns: Int): Modifier
-    fun Modifier.rowSpan(rows: Int): Modifier
-}
-
-private object TableRowScopeImpl : TableRowScope {
-
-    override fun Modifier.columnSpan(columns: Int): Modifier {
-        require(columns > 0) { "invalid columnSpan $columns; must be greater than zero" }
-        return this.then(
-            ModifierColumnSpanImpl(
-                value = columns,
-                inspectorInfo = debugInspectorInfo {
-                    name = "columnSpan"
-                    this.value = columns
-                    properties["value"] = columns
-                }
-            )
-        )
-    }
-
-    override fun Modifier.rowSpan(rows: Int): Modifier {
-        require(rows > 0) { "invalid rowSpan $rows; must be greater than zero" }
-        return this.then(
-            ModifierRowSpanImpl(
-                value = rows,
-                inspectorInfo = debugInspectorInfo {
-                    name = "rowSpan"
-                    this.value = rows
-                    properties["value"] = rows
-                }
-            )
-        )
-    }
-}
-
-private data class ColumnSpanParentData(
-    var columnSpan: Int? = 1,
-)
-
-private data class RowSpanParentData(
-    var rowSpan: Int? = 1,
-)
-
-private class ModifierColumnSpanImpl(
-    val value: Int,
-    inspectorInfo: InspectorInfo.() -> Unit
-) : ParentDataModifier, InspectorValueInfo(inspectorInfo) {
-
-    override fun Density.modifyParentData(parentData: Any?) =
-        ((parentData as? ColumnSpanParentData) ?: ColumnSpanParentData()).also {
-            it.columnSpan = value
-        }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is ModifierColumnSpanImpl) return false
-        return value == other.value
-    }
-
-    override fun hashCode(): Int {
-        var result = value.hashCode()
-        result = 31 * result + value.hashCode()
-        return result
-    }
-
-    override fun toString(): String = "ModifierColumnSpanImpl(value=$value)"
-}
-
-private class ModifierRowSpanImpl(
-    val value: Int,
-    inspectorInfo: InspectorInfo.() -> Unit
-) : ParentDataModifier, InspectorValueInfo(inspectorInfo) {
-
-    override fun Density.modifyParentData(parentData: Any?) =
-        ((parentData as? RowSpanParentData) ?: RowSpanParentData()).also {
-            it.rowSpan = value
-        }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is ModifierRowSpanImpl) return false
-        return value == other.value
-    }
-
-    override fun hashCode(): Int {
-        var result = value.hashCode()
-        result = 17 * result + value.hashCode()
-        return result
-    }
-
-    override fun toString(): String = "ModifierRowSpanImpl(value=$value)"
-}
