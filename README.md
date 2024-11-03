@@ -3,10 +3,8 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.zakgof/compose-table/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.zakgof/compose-table)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.0.20-278ec7.svg?logo=kotlin)](http://kotlinlang.org)
 ![badge][badge-android]
-![badge][badge-ios]
 ![badge][badge-jvm]
 ![badge][badge-linux]
-![badge][badge-mac]
 ![badge][badge-wasm]
 ![badge][badge-windows]
 
@@ -29,7 +27,7 @@ Gradle configuration for Kotlin Multiplatform:
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("com.github.zakgof:table:1.0.0")
+            implementation("com.github.zakgof:table:1.0.1")
 
 ```
 

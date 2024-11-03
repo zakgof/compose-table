@@ -1,5 +1,6 @@
 
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -12,7 +13,7 @@ plugins {
     id("signing")
 }
 
-val libraryVersion = "1.0.0"
+val libraryVersion = "1.0.1"
 val libraryGroup = "com.github.zakgof"
 
 kotlin {
@@ -22,6 +23,12 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        binaries.executable()
     }
 
     jvm("desktop")
@@ -34,7 +41,6 @@ kotlin {
 }
 
 android {
-
     namespace = "com.zakgof.table"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
@@ -90,10 +96,7 @@ publishing {
     repositories {
         maven {
             name = "sonatype"
-            setUrl(if (libraryVersion.contains("SNAPSHOT"))
-                "https://oss.sonatype.org/content/repositories/snapshots/"
-            else
-                "https://oss.sonatype.org/service/local/staging/deploy/maven2")
+            setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2")
             credentials {
                 username = getExtraString("ossrhUsername")
                 password = getExtraString("ossrhPassword")
