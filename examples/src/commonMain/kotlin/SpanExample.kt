@@ -1,7 +1,6 @@
 package com.zakgof.table.examples
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -13,9 +12,9 @@ import com.zakgof.Table
 @Composable
 fun SpanExample() {
     Table (
-        modifier = Modifier.fillMaxWidth(),
-        lineWidth = 0.dp,
-        lineColor = Color.Red
+        modifier = Modifier.padding(4.dp),
+        lineWidth = 1.dp,
+        lineColor = Color(0XFF808080)
     ) {
         Row {
             TextCell(text = "Day", modifier = Modifier.rowSpan(2))
@@ -24,7 +23,7 @@ fun SpanExample() {
         Row {
             TextCell(text = "Begin")
             TextCell(text = "End")
-            TextCell(text = "Topic", modifier = Modifier.fillMaxWidth())
+            TextCell(text = "Topic")
         }
         Row {
             TextCell(text = "Monday", modifier = Modifier.rowSpan(2))
@@ -48,7 +47,7 @@ fun SpanExample() {
 }
 
 @Composable
-fun TextCell(text: String, modifier: Modifier = Modifier) = Text (
+private fun TextCell(text: String, modifier: Modifier = Modifier) = Text (
     text = text,
-    modifier = modifier.background(Color.Green).padding(4.dp)
+    modifier = modifier.background(Color(0xFFF0F0F0)).padding(4.dp)
 )

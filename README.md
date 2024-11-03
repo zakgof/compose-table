@@ -22,16 +22,13 @@ kotlin {
 Quick start
 
 ```kotlin
-Table {
+Table (lineWidth = 2.dp, lineColor = Color.BLUE) {
     Row {
-        Text(text = "1")
-        Text(text = "John Doe")
-        Text(text = "johndoe@somemail.com")
+        Text(text = "Cell 1")
+        Text(text = "Cell 2")
     }
     Row {
-        Text(text = "2")
-        Text(text = "Jane Doe")
-        Text(text = "janedoe@somemail.com")
+        Text(text = "Long cell", modifier = Modifier.columnSpan(2))
     }
 }
 ```

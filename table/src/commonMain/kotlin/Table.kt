@@ -20,6 +20,7 @@ import kotlin.math.ceil
 @Composable
 fun Table(
     modifier: Modifier = Modifier,
+    showGridLines: Boolean = true,
     lineWidth: Dp = 1.dp,
     lineColor: Color = Color.DarkGray,
     content: TableScope.() -> Unit
@@ -53,8 +54,9 @@ fun Table(
 
     }) { constraints ->
 
-        val lineWidthFloatPix: Float = LocalDensity.run { lineWidth.toPx() }
-        val lineWidthPix = ceil(lineWidthFloatPix).toInt()
+        val lineWidthFloatPix: Float =
+            if (showGridLines) LocalDensity.run { lineWidth.toPx() } else 0f
+        val lineWidthPix = if (showGridLines) ceil(lineWidthFloatPix).toInt() else 0
 
         val rows = mutableListOf<@Composable TableRowScope.() -> Unit>()
         content(object : TableScope {
@@ -169,8 +171,10 @@ fun Table(
         val accumWidths = finalWidths.accumulated(lineWidthPix)
         val accumHeights = finalHeights.accumulated(lineWidthPix)
 
-        horizontalLines = calculateLines(accumWidths, accumHeights, noxline, lineWidthFloatPix)
-        verticalLines = calculateLines(accumHeights, accumWidths, noyline, lineWidthFloatPix)
+        if (showGridLines) {
+            horizontalLines = calculateLines(accumWidths, accumHeights, noxline, lineWidthFloatPix)
+            verticalLines = calculateLines(accumHeights, accumWidths, noyline, lineWidthFloatPix)
+        }
 
         layout(
             width = accumWidths.last(),
@@ -205,7 +209,7 @@ fun calculateLines(
             m[accumWidths[startIndex].toFloat() + so] = accumWidths[endIndex].toFloat() + eo
             startIndex = endIndex + 1
         }
-        y.toFloat()-lineWidthFloatPix * 0.5f to m
+        y.toFloat() - lineWidthFloatPix * 0.5f to m
     }.associate { it }
 }
 
